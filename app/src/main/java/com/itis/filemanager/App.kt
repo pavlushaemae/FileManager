@@ -2,6 +2,7 @@ package com.itis.filemanager
 
 import android.app.Application
 import com.itis.filemanager.di.appModule
+import com.itis.filemanager.di.databaseModule
 import com.itis.filemanager.di.featureModule
 import com.itis.filemanager.di.filesModule
 import org.koin.android.ext.koin.androidContext
@@ -17,7 +18,8 @@ class App : Application() {
             modules(
                 appModule,
                 featureModule,
-                filesModule
+                filesModule,
+                databaseModule
             )
         }
     }

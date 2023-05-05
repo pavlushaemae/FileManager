@@ -1,4 +1,4 @@
-package com.itis.fatslim.presentation.recycler.subscriptions.utils
+package com.itis.filemanager.presentation.recycler.files.utils
 
 import android.content.Context
 import android.graphics.Rect

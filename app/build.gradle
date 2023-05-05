@@ -52,6 +52,12 @@ dependencies {
 
     implementation("io.coil-kt:coil:2.2.2")
 
+    // region rx
+    implementation "io.reactivex.rxjava3:rxjava:3.1.6"
+    implementation "io.reactivex.rxjava3:rxandroid:3.0.2"
+    implementation "io.reactivex.rxjava3:rxkotlin:3.0.1"
+    // endregion
+
     // region room
     def room = "2.4.3"
     implementation "androidx.room:room-runtime:$room"

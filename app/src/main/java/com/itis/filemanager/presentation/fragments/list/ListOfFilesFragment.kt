@@ -6,20 +6,21 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.webkit.MimeTypeMap
+import android.widget.AdapterView
+import android.widget.ArrayAdapter
 import androidx.core.content.FileProvider
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.flowWithLifecycle
 import androidx.lifecycle.lifecycleScope
-import com.itis.fatslim.presentation.recycler.subscriptions.utils.SpaceItemDecorator
+import com.itis.filemanager.presentation.recycler.files.utils.SpaceItemDecorator
 import com.itis.filemanager.BuildConfig
+import com.itis.filemanager.R
 import com.itis.filemanager.databinding.FragmentListOfFilesBinding
 import com.itis.filemanager.presentation.recycler.files.FileAdapter
-import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 import org.koin.androidx.viewmodel.ext.android.viewModel
-import java.util.jar.Manifest
 
 
 class ListOfFilesFragment : Fragment() {
@@ -48,6 +49,63 @@ class ListOfFilesFragment : Fragment() {
         binding.rvPosts.addItemDecoration(
             SpaceItemDecorator(requireContext(), 16f)
         )
+        viewModel.loadFilesToDb()
+        ArrayAdapter.createFromResource(
+            requireContext(),
+            R.array.sort_array,
+            com.google.android.material.R.layout.support_simple_spinner_dropdown_item
+        ).also {
+            it.setDropDownViewResource(com.google.android.material.R.layout.support_simple_spinner_dropdown_item)
+            binding.spinnerSort.adapter = it
+        }
+        ArrayAdapter.createFromResource(
+            requireContext(),
+            R.array.sort_asc,
+            com.google.android.material.R.layout.support_simple_spinner_dropdown_item
+        ).also {
+            it.setDropDownViewResource(com.google.android.material.R.layout.support_simple_spinner_dropdown_item)
+            binding.spinnerSortAsc.adapter = it
+        }
+        binding.spinnerSort.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
+            override fun onItemSelected(
+                parent: AdapterView<*>?,
+                view: View?,
+                position: Int,
+                id: Long
+            ) {
+                parent?.getItemAtPosition(position).also {
+                    it?.let {
+                        viewModel.sortBy(it.toString())
+                    }
+                }
+            }
+
+            override fun onNothingSelected(parent: AdapterView<*>?) = Unit
+
+        }
+        binding.spinnerSortAsc.onItemSelectedListener =
+            object : AdapterView.OnItemSelectedListener {
+                override fun onItemSelected(
+                    parent: AdapterView<*>?,
+                    view: View?,
+                    position: Int,
+                    id: Long
+                ) {
+                    parent?.getItemAtPosition(position).also {
+                        parent?.getItemAtPosition(position).also {
+                            it?.let {
+                                viewModel.sortByAsc(it.toString())
+                            }
+                        }
+                    }
+                }
+
+                override fun onNothingSelected(parent: AdapterView<*>?) = Unit
+
+            }
+        binding.btnAoa.setOnClickListener {
+            viewModel.getChangedFiles()
+        }
     }
 
     private fun observeViewModel() {
@@ -75,10 +133,6 @@ class ListOfFilesFragment : Fragment() {
                         startActivity(i)
                     }
                 }.launchIn(lifecycleScope)
-//            currentPath.flowWithLifecycle(lifecycle)
-//                .onEach {
-//                    binding.currentPath.text = it
-//                }.launchIn(lifecycleScope)
             lifecycleScope.launch {
                 currentPath.collect {
                     binding.currentPath.text = it
@@ -87,6 +141,29 @@ class ListOfFilesFragment : Fragment() {
             listOfFiles.flowWithLifecycle(lifecycle)
                 .onEach {
                     fileAdapter?.submitList(it)
+                }.launchIn(lifecycleScope)
+            shareFile.flowWithLifecycle(lifecycle)
+                .onEach {
+                    it?.let {
+                        val intent = Intent()
+                        intent.action = Intent.ACTION_SEND
+                        val mType =
+                            MimeTypeMap.getSingleton().getMimeTypeFromExtension(it.extension)
+                        val u = FileProvider.getUriForFile(
+                            requireContext(),
+                            BuildConfig.APPLICATION_ID + ".provider",
+                            it
+                        )
+                        intent.type = mType
+                        intent.putExtra(Intent.EXTRA_STREAM, u)
+                        val chooserIntent = Intent.createChooser(
+                            intent,
+                            "Share"
+                        )
+                        if (chooserIntent.resolveActivity(requireActivity().packageManager) != null) {
+                            startActivity(chooserIntent)
+                        }
+                    }
                 }.launchIn(lifecycleScope)
         }
     }
