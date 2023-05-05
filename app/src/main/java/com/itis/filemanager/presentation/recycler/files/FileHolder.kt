@@ -5,10 +5,13 @@ import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
 import com.itis.filemanager.databinding.ItemFileBinding
 import com.itis.filemanager.presentation.recycler.files.model.FileItem
+import java.text.DateFormat
+import java.text.SimpleDateFormat
+import java.util.*
 
 class FileHolder(
     private val binding: ItemFileBinding,
-    private val onItemClick: () -> Unit
+    private val onItemClick: (FileItem) -> Unit
 ) : RecyclerView.ViewHolder(binding.root) {
 
     private var fileItem: FileItem? = null
@@ -16,7 +19,7 @@ class FileHolder(
     init {
         binding.root.setOnClickListener {
             fileItem?.let {
-                onItemClick()
+                onItemClick(it)
             }
         }
     }
@@ -28,13 +31,22 @@ class FileHolder(
 //                crossfade(true)
 //                    .transformations(CircleCropTransformation())
 //        }
+            tvName.text = fileItem.name
+            if (fileItem.name != "..") {
+                tvDateOfCreate.text = fileItem.dateOfCreate?.format("hh:mm dd.MM").orEmpty()
+                tvSize.text = fileItem.size.toString()
+            }
         }
+    }
+    fun Date.format(format: String): String {
+        val dateFormat: DateFormat = SimpleDateFormat(format, Locale.getDefault())
+        return dateFormat.format(this)
     }
 
     companion object {
         fun create(
             parent: ViewGroup,
-            onItemClick: () -> Unit
+            onItemClick: (FileItem) -> Unit
         ): FileHolder = FileHolder(
             binding = ItemFileBinding.inflate(
                 LayoutInflater.from(parent.context),

@@ -7,7 +7,7 @@ import com.itis.filemanager.presentation.recycler.files.utils.ItemCallback
 import com.itis.filemanager.presentation.recycler.files.model.FileItem
 
 class FileAdapter(
-    private val onItemClick: () -> Unit
+    private val onItemClick: (FileItem) -> Unit
 ): ListAdapter<FileItem, RecyclerView.ViewHolder>(ItemCallback) {
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder =

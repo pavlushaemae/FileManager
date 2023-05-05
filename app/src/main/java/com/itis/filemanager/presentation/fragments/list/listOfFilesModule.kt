@@ -5,5 +5,5 @@ import org.koin.androidx.viewmodel.dsl.viewModel
 import org.koin.dsl.module
 
 val listOfFilesModule = module {
-    viewModel { ListOfFilesViewModel() }
+    viewModel { ListOfFilesViewModel(get(), get(), get(), get()) }
 }

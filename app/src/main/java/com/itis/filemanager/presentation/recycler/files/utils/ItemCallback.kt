@@ -8,7 +8,7 @@ object ItemCallback : DiffUtil.ItemCallback<FileItem>() {
         oldItem: FileItem,
         newItem: FileItem
     ): Boolean =
-        oldItem.id == newItem.id
+        oldItem.path == newItem.path
 
     override fun areContentsTheSame(
         oldItem: FileItem,
