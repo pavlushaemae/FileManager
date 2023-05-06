@@ -1,6 +1,7 @@
 package com.itis.filemanager.presentation.recycler.files
 
 import android.view.LayoutInflater
+import android.view.View
 import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
 import com.itis.filemanager.databinding.ItemFileBinding
@@ -36,15 +37,20 @@ class FileHolder(
     fun onBind(fileItem: FileItem) {
         this.fileItem = fileItem
         with(binding) {
-            ivIcon.setImageResource(fileItem.drawable)
             tvName.text = fileItem.name
+            if (fileItem.name == "..") {
+                ivShare.visibility = View.GONE
+                linLayoutSecondaryInfo.visibility = View.GONE
+                return
+            }
+            if (fileItem.isDirectory) ivShare.visibility = View.GONE
+            ivIcon.setImageResource(fileItem.drawable)
             tvDateOfCreate.text = fileItem.dateOfCreate?.format("hh:mm dd.MM.YYYY").orEmpty()
             tvSize.text = (fileItem.size / KILOBYTES).toString()
-
         }
     }
 
-    fun Date.format(format: String): String {
+    private fun Date.format(format: String): String {
         val dateFormat: DateFormat = SimpleDateFormat(format, Locale.getDefault())
         return dateFormat.format(this)
     }

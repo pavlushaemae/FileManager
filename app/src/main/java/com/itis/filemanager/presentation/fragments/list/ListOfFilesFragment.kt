@@ -12,11 +12,11 @@ import androidx.core.content.FileProvider
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.flowWithLifecycle
 import androidx.lifecycle.lifecycleScope
-import com.itis.filemanager.presentation.recycler.files.utils.SpaceItemDecorator
 import com.itis.filemanager.BuildConfig
 import com.itis.filemanager.R
 import com.itis.filemanager.databinding.FragmentListOfFilesBinding
 import com.itis.filemanager.presentation.recycler.files.FileAdapter
+import com.itis.filemanager.presentation.recycler.files.utils.SpaceItemDecorator
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
@@ -44,12 +44,20 @@ class ListOfFilesFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
         observeViewModel()
         activity?.requestPermissions(arrayOf(android.Manifest.permission.READ_EXTERNAL_STORAGE), 0)
+        viewModel.loadFilesToDb()
         viewModel.initAdapter()
         viewModel.browseToRootDirectory()
         binding.rvPosts.addItemDecoration(
-            SpaceItemDecorator(requireContext(), 16f)
+            SpaceItemDecorator(requireContext(), SPACING_DP)
         )
-        viewModel.loadFilesToDb()
+        initSpinnerSort()
+        initSpinnersSortAsc()
+        binding.btnShowChangedFiles.setOnClickListener {
+            viewModel.getChangedFiles()
+        }
+    }
+
+    private fun initSpinnerSort() {
         ArrayAdapter.createFromResource(
             requireContext(),
             R.array.sort_array,
@@ -57,14 +65,6 @@ class ListOfFilesFragment : Fragment() {
         ).also {
             it.setDropDownViewResource(com.google.android.material.R.layout.support_simple_spinner_dropdown_item)
             binding.spinnerSort.adapter = it
-        }
-        ArrayAdapter.createFromResource(
-            requireContext(),
-            R.array.sort_asc,
-            com.google.android.material.R.layout.support_simple_spinner_dropdown_item
-        ).also {
-            it.setDropDownViewResource(com.google.android.material.R.layout.support_simple_spinner_dropdown_item)
-            binding.spinnerSortAsc.adapter = it
         }
         binding.spinnerSort.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
             override fun onItemSelected(
@@ -76,13 +76,24 @@ class ListOfFilesFragment : Fragment() {
                 parent?.getItemAtPosition(position).also {
                     it?.let {
                         viewModel.sortBy(it.toString())
+                        binding.rvPosts.scrollToPosition(0)
                     }
                 }
             }
-
             override fun onNothingSelected(parent: AdapterView<*>?) = Unit
-
         }
+    }
+
+    private fun initSpinnersSortAsc() {
+        ArrayAdapter.createFromResource(
+            requireContext(),
+            R.array.sort_asc,
+            com.google.android.material.R.layout.support_simple_spinner_dropdown_item
+        ).also {
+            it.setDropDownViewResource(com.google.android.material.R.layout.support_simple_spinner_dropdown_item)
+            binding.spinnerSortAsc.adapter = it
+        }
+
         binding.spinnerSortAsc.onItemSelectedListener =
             object : AdapterView.OnItemSelectedListener {
                 override fun onItemSelected(
@@ -95,6 +106,7 @@ class ListOfFilesFragment : Fragment() {
                         parent?.getItemAtPosition(position).also {
                             it?.let {
                                 viewModel.sortByAsc(it.toString())
+                                binding.rvPosts.scrollToPosition(0)
                             }
                         }
                     }
@@ -103,9 +115,6 @@ class ListOfFilesFragment : Fragment() {
                 override fun onNothingSelected(parent: AdapterView<*>?) = Unit
 
             }
-        binding.btnAoa.setOnClickListener {
-            viewModel.getChangedFiles()
-        }
     }
 
     private fun observeViewModel() {
@@ -140,7 +149,24 @@ class ListOfFilesFragment : Fragment() {
             }
             listOfFiles.flowWithLifecycle(lifecycle)
                 .onEach {
+                    if (it.isEmpty()) {
+                        binding.tvEmpty.visibility = View.VISIBLE
+                    } else {
+                        binding.tvEmpty.visibility = View.GONE
+                    }
                     fileAdapter?.submitList(it)
+                }.launchIn(lifecycleScope)
+            loading.flowWithLifecycle(lifecycle)
+                .onEach {
+                    with(binding) {
+                        if (it) {
+                            pbLoading.visibility = View.VISIBLE
+                            rvPosts.visibility =  View.GONE
+                        } else {
+                            pbLoading.visibility = View.GONE
+                            rvPosts.visibility = View.VISIBLE
+                        }
+                    }
                 }.launchIn(lifecycleScope)
             shareFile.flowWithLifecycle(lifecycle)
                 .onEach {
@@ -166,5 +192,9 @@ class ListOfFilesFragment : Fragment() {
                     }
                 }.launchIn(lifecycleScope)
         }
+    }
+
+    companion object {
+        private const val SPACING_DP = 16f
     }
 }

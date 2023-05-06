@@ -15,7 +15,7 @@
     <LinearLayout
         android:layout_width="0dp"
         android:layout_weight="1"
-        android:layout_height="wrap_content"
+        android:layout_height="match_parent"
         android:orientation="vertical"
         android:layout_marginStart="@dimen/main_4">
 
@@ -24,8 +24,10 @@
             android:fontFamily="sans-serif-medium"
             android:textColor="@color/black"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
+            android:layout_height="0dp"
+            android:layout_weight="1"
             android:maxLines="1"
+            android:gravity="center_vertical"
             android:layout_gravity="center_vertical"
             android:layout_marginStart="@dimen/main2"
             android:text="name"
@@ -33,6 +35,7 @@
             android:ellipsize="middle"/>
 
         <LinearLayout
+            android:id="@+id/lin_layout_secondary_info"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal">

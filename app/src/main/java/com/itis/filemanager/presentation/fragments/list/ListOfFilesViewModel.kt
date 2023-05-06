@@ -1,6 +1,5 @@
 package com.itis.filemanager.presentation.fragments.list
 
-import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.itis.filemanager.domain.files.*
@@ -13,6 +12,7 @@ import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers
 import io.reactivex.rxjava3.disposables.CompositeDisposable
 import io.reactivex.rxjava3.kotlin.plusAssign
 import io.reactivex.rxjava3.kotlin.subscribeBy
+import io.reactivex.rxjava3.schedulers.Schedulers
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -54,53 +54,27 @@ class ListOfFilesViewModel(
 
     private val sortBy: MutableStateFlow<String> = MutableStateFlow("Name")
 
-
     private val sortByAsc: MutableStateFlow<Boolean> = MutableStateFlow(true)
 
+    private val _loading: MutableStateFlow<Boolean> = MutableStateFlow(false)
+    val loading: StateFlow<Boolean>
+        get() = _loading
 
-    fun browseToRootDirectory() {
-        browseTo(getCurrentDirectoryUseCase())
-    }
-
-
-    private fun browseTo(aDirectory: FileInfo) {
-//        setCurrentDirectoryUseCase(aDirectory)
-        if (aDirectory.isDirectory) {
-            fill()
-//        viewModelScope.launch {
-//            _currentPath.emit(aDirectory.absolutePath)
-//        }
-        } else {
-            viewModelScope.launch {
-                val file = File(aDirectory.absolutePath)
-                _openFile.emit(file)
-            }
+    private fun openFile(aDirectory: FileInfo) {
+        viewModelScope.launch {
+            val file = File(aDirectory.absolutePath)
+            _openFile.emit(file)
         }
     }
-
-    private fun fill() {
-        fileDisposable +=
-            getListOfFilesUseCase(sortBy.value, sortByAsc.value)
-                .observeOn(AndroidSchedulers.mainThread())
-                .doOnSubscribe { Log.e("", "loading") }
-                .doAfterTerminate { Log.e("", "loading finished") }
-                .subscribeBy {
-                    _listOfFiles.value = it.toFileItemList()
-                }
-    }
-
-//    private fun upOneLevel() {
-//        browseTo(upCurrentDirectoryUseCase())
-//    }
 
     fun initAdapter() {
         _adapter.value = FileAdapter(
             onItemClick = {
-//            if (it.path == "..") {
-//                upOneLevel()
-//            } else {
-                browseTo(it.toFileInfo())
-//            }
+                if (it.name == "..") {
+                    upOneLevel()
+                } else {
+                    browseTo(it.toFileInfo())
+                }
             }, onShareClick = {
                 viewModelScope.launch {
                     _shareFile.emit(File(it.absolutePath))
@@ -125,16 +99,49 @@ class ListOfFilesViewModel(
             .subscribeBy {
                 changedFiles = it.toFileItemList()
             }
-
     }
 
     fun getChangedFiles() {
         if (_listOfFiles.value == changedFiles) {
-            fill()
+            browseToRootDirectory()
         } else {
             _listOfFiles.value = changedFiles
+            viewModelScope.launch {
+                _currentPath.emit("Changed files")
+            }
         }
+    }
 
+    fun browseToRootDirectory() {
+        browseTo(getCurrentDirectoryUseCase())
+    }
+
+    private fun browseTo(directory: FileInfo) {
+        setCurrentDirectoryUseCase(directory)
+        if (directory.isDirectory) {
+            fill()
+            viewModelScope.launch {
+                _currentPath.emit(directory.absolutePath)
+            }
+        } else {
+            openFile(directory)
+        }
+    }
+
+    private fun fill() {
+        fileDisposable +=
+            getListOfFilesUseCase(sortBy.value, sortByAsc.value)
+                .subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
+                .doOnSubscribe { _loading.value = true }
+                .doAfterTerminate { _loading.value = false }
+                .subscribeBy {
+                    _listOfFiles.value = it.toFileItemList()
+                }
+    }
+
+    private fun upOneLevel() {
+        browseTo(upCurrentDirectoryUseCase())
     }
 
     override fun onCleared() {

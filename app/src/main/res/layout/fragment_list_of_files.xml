@@ -6,21 +6,6 @@
     android:layout_height="match_parent"
     android:orientation="vertical">
 
-    <Button
-        android:id="@+id/btn_aoa"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="aoa"/>
-
-    <TextView
-        android:id="@+id/tv_empty"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="center"
-        android:gravity="center"
-        android:text="@string/list_is_empty"
-        android:visibility="gone" />
-
     <TextView
         android:id="@+id/current_path"
         android:layout_width="match_parent"
@@ -28,9 +13,10 @@
         android:background="@color/cardview_dark_background"
         android:padding="4dp"
         android:textColor="@color/cardview_light_background"
-        android:textSize="20sp"
-        tools:text="/root/sdcard"
-        android:visibility="gone"/>
+        android:textSize="16sp"
+        tools:text="/root/sdcard"/>
+
+
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -63,14 +49,35 @@
         android:layout_height="1dp"
         android:background="@drawable/shadow_line" />
 
+    <Button
+        android:id="@+id/btn_show_changed_files"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Show Changed Files"
+        android:layout_margin="@dimen/main2"/>
+
+    <ProgressBar
+        android:id="@+id/pb_loading"
+        android:layout_width="wrap_content"
+        android:layout_height="match_parent"
+        android:layout_gravity="center"
+        android:visibility="gone"/>
+    <TextView
+        android:id="@+id/tv_empty"
+        android:layout_width="wrap_content"
+        android:layout_height="match_parent"
+        android:layout_gravity="center"
+        android:gravity="center"
+        android:text="@string/list_is_empty"
+        android:visibility="gone" />
+
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/rv_posts"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_height="match_parent"
         android:orientation="vertical"
         app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
         tools:itemCount="8"
         tools:listitem="@layout/item_file" />
-
 
 </LinearLayout>

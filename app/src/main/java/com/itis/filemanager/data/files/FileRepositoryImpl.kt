@@ -15,52 +15,7 @@ class FileRepositoryImpl(
     private val fileHashcodeDao: FileHashcodeDao
 ) : FileRepository {
     private var currentDirectory: File = Environment.getExternalStorageDirectory()
-    private val list = arrayListOf<FileInfo>()
-
-    override fun getListOfFiles(sortBy: String, asc: Boolean): Single<List<FileInfo>> {
-//        list.clear()
-//        if (currentDirectory.parent != null) {
-//            list.add(FileInfo(name = "..", path = "..", dateOfCreate = null, listFiles = null))
-//        }
-//        currentDirectory.listFiles()?.let {
-//            list.addAll(it.toListOfFileInfo())
-//        }
-        return Single.fromCallable {
-            var list = getAllFiles(currentDirectory).toListOfFileInfo()
-            when (sortBy) {
-                "Name" -> {
-                    list = if (asc) {
-                        list.sortedBy { it.name }
-                    } else {
-                        list.sortedByDescending { it.name }
-                    }
-                }
-                "Extension" -> {
-                    list = if (asc) {
-                        list.sortedBy { it.extension }
-                    } else {
-                        list.sortedByDescending { it.extension }
-                    }
-                }
-                "Size" -> {
-                    list = if (asc) {
-                        list.sortedBy { it.size }
-                    } else {
-                        list.sortedByDescending { it.size }
-                    }
-                }
-                "Date" -> {
-                    list = if (asc) {
-                        list.sortedBy { it.dateOfCreate }
-                    } else {
-                        list.sortedByDescending { it.dateOfCreate }
-                    }
-                }
-            }
-
-            return@fromCallable list
-        }.subscribeOn(Schedulers.io())
-    }
+    private var list = arrayListOf<FileInfo>()
 
     private fun getAllFiles(directory: File): List<File> {
         val files = mutableListOf<File>()
@@ -72,6 +27,59 @@ class FileRepositoryImpl(
             }
         }
         return files
+    }
+
+    override fun getListOfFiles(sortBy: String, asc: Boolean): Single<List<FileInfo>> {
+        return Single.fromCallable {
+            list.clear()
+
+            currentDirectory.listFiles()?.let {
+                list.addAll(it.toListOfFileInfo())
+            }
+
+            when (sortBy) {
+                "Name" -> {
+                    if (asc) {
+                        list.sortBy { it.name }
+                    } else {
+                        list.sortByDescending { it.name }
+                    }
+                }
+                "Extension" -> {
+                    if (asc) {
+                        list.sortBy { it.extension }
+                    } else {
+                        list.sortByDescending { it.extension }
+                    }
+                }
+                "Size" -> {
+                    if (asc) {
+                        list.sortBy { it.size }
+                    } else {
+                        list.sortByDescending { it.size }
+                    }
+                }
+                "Date" -> {
+                    if (asc) {
+                        list.sortBy { it.dateOfCreate }
+                    } else {
+                        list.sortByDescending { it.dateOfCreate }
+                    }
+                }
+            }
+            currentDirectory.parent?.let {
+                if (it != Environment.getExternalStorageDirectory().parent)
+                    list.add(0,
+                        FileInfo(
+                            name = "..",
+                            dateOfCreate = null,
+                            listFiles = null
+                        )
+                    )
+            }
+
+            return@fromCallable list
+        }
     }
 
     override fun getCurrentDirectory(): FileInfo {
@@ -108,16 +116,6 @@ class FileRepositoryImpl(
     }
 
     private fun calculateHash(file: File): String {
-//        val digest = MessageDigest.getInstance("SHA-256")
-//        file.inputStream().use { input ->
-//            val buffer = ByteArray(8192)
-//            var read = input.read(buffer, 0, buffer.size)
-//            while (read > 0) {
-//                digest.update(buffer, 0, read)
-//                read = input.read(buffer, 0, buffer.size)
-//            }
-//        }
-//        return digest.digest()
         val s = StringBuilder()
         s.append(file.name.length)
         s.append(file.length())
