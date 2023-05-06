@@ -38,38 +38,23 @@ class FileRepositoryImpl(
             }
 
             when (sortBy) {
-                "Name" -> {
-                    if (asc) {
-                        list.sortBy { it.name }
-                    } else {
-                        list.sortByDescending { it.name }
-                    }
-                }
-                "Extension" -> {
-                    if (asc) {
-                        list.sortBy { it.extension }
-                    } else {
-                        list.sortByDescending { it.extension }
-                    }
-                }
-                "Size" -> {
-                    if (asc) {
-                        list.sortBy { it.size }
-                    } else {
-                        list.sortByDescending { it.size }
-                    }
-                }
-                "Date" -> {
-                    if (asc) {
-                        list.sortBy { it.dateOfCreate }
-                    } else {
-                        list.sortByDescending { it.dateOfCreate }
-                    }
-                }
+                "Name" ->
+                    if (asc) list.sortBy { it.name }
+                    else list.sortByDescending { it.name }
+                "Extension" ->
+                    if (asc) list.sortBy { it.extension }
+                    else list.sortByDescending { it.extension }
+                "Size" ->
+                    if (asc) list.sortBy { it.size }
+                    else list.sortByDescending { it.size }
+                "Date" ->
+                    if (asc) list.sortBy { it.dateOfCreate }
+                    else list.sortByDescending { it.dateOfCreate }
             }
             currentDirectory.parent?.let {
                 if (it != Environment.getExternalStorageDirectory().parent)
-                    list.add(0,
+                    list.add(
+                        0,
                         FileInfo(
                             name = "..",
                             dateOfCreate = null,
