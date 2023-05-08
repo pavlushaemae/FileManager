@@ -78,12 +78,12 @@ class ListOfFilesViewModel(
 
     fun sortBy(sort: Sort) {
         sortBy.value = sort
-        fill()
+        fillList()
     }
 
     fun sortByAsc(asc: Boolean) {
         sortByAsc.value = asc
-        fill()
+        fillList()
     }
 
 
@@ -104,7 +104,7 @@ class ListOfFilesViewModel(
             browseToRootDirectory()
         } else {
             _listOfFiles.value = changedFiles
-            _currentPath.value = "Changed files"
+            _currentPath.value = CHANGED_FILES
         }
     }
 
@@ -117,34 +117,37 @@ class ListOfFilesViewModel(
     private fun browseTo(directory: FileInfo) {
         setCurrentDirectoryUseCase(directory)
         if (directory.isDirectory) {
-            fill()
+            fillList()
             _currentPath.value = directory.absolutePath
         } else {
             openFile(directory)
         }
     }
 
-    private fun fill() {
+    private fun fillList() {
         if (perms.value == true) {
             sortBy.value?.let { sortBy ->
                 sortByAsc.value?.let { sortByAsc ->
-                    fileDisposable +=
-                        getListOfFilesUseCase(sortBy, sortByAsc)
-                            .subscribeOn(Schedulers.io())
-                            .observeOn(AndroidSchedulers.mainThread())
-                            .doOnSubscribe { _loading.value = true }
-                            .doAfterTerminate { _loading.value = false }
-                            .subscribeBy(
-                                onSuccess = {
-                                    _listOfFiles.value = it.toFileItemList()
-                                }, onError = {
-                                    Log.e("error", it.toString())
-                                }
-                            )
+                    getListOfFiles(sortBy, sortByAsc)
                 }
             }
-
         }
+    }
+
+    private fun getListOfFiles(sortBy: Sort, sortByAsc: Boolean) {
+        fileDisposable +=
+            getListOfFilesUseCase(sortBy, sortByAsc)
+                .subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
+                .doOnSubscribe { _loading.value = true }
+                .doAfterTerminate { _loading.value = false }
+                .subscribeBy(
+                    onSuccess = {
+                        _listOfFiles.value = it.toFileItemList()
+                    }, onError = {
+                        Log.e("error", it.toString())
+                    }
+                )
     }
 
     private fun upOneLevel() {
@@ -158,5 +161,9 @@ class ListOfFilesViewModel(
     override fun onCleared() {
         super.onCleared()
         fileDisposable.clear()
+    }
+
+    companion object {
+        private const val CHANGED_FILES = "Changed files"
     }
 }

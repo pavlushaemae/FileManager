@@ -1,8 +1,8 @@
 package com.itis.filemanager.presentation.recycler.files
 
 import android.view.LayoutInflater
-import android.view.View
 import android.view.ViewGroup
+import androidx.core.view.isVisible
 import androidx.recyclerview.widget.RecyclerView
 import com.itis.filemanager.databinding.ItemFileBinding
 import com.itis.filemanager.presentation.recycler.files.model.FileItem
@@ -28,7 +28,6 @@ class FileHolder(
                 }
             }
         }
-
     }
 
     fun onBind(fileItem: FileItem) {
@@ -36,11 +35,11 @@ class FileHolder(
         with(binding) {
             tvName.text = fileItem.name
             if (fileItem.name == "..") {
-                ivShare.visibility = View.GONE
-                linLayoutSecondaryInfo.visibility = View.GONE
+                ivShare.isVisible = false
+                linLayoutSecondaryInfo.isVisible = false
                 return
             }
-            if (fileItem.isDirectory) ivShare.visibility = View.GONE
+            if (fileItem.isDirectory) ivShare.isVisible = false
             ivIcon.setImageResource(fileItem.drawable)
             tvDateOfCreate.text = fileItem.dateOfCreate
             tvSize.text = fileItem.size.toString()

@@ -1,6 +1,5 @@
 package com.itis.filemanager.domain.files.model
 
-import java.security.cert.Extension
 import java.util.*
 
 data class FileInfo(
@@ -12,4 +11,8 @@ data class FileInfo(
     val absolutePath: String = "",
     val extension: String = "",
     val listFiles: List<FileInfo>?
-)
+) {
+    companion object {
+        const val BACK_NAME = ".."
+    }
+}

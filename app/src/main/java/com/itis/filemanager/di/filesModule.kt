@@ -7,11 +7,11 @@ import org.koin.dsl.module
 
 val filesModule = module {
     single { provideFileRepository(get()) }
-    factory { GetListOfFilesUseCase(get()) }
-    factory { GetCurrentDirectoryUseCase(get()) }
-    factory { UpCurrentDirectoryUseCase(get()) }
-    factory { SetCurrentDirectoryUseCase(get()) }
-    factory { LoadFileHashcodesToDbUseCase(get()) }
+    factory { provideGetListOfFilesUseCase(get()) }
+    factory { provideGetCurrentDirectoryUseCase(get()) }
+    factory { provideUpCurrentDirectoryUseCase(get()) }
+    factory { provideSetCurrentDirectoryUseCase(get()) }
+    factory { provideLoadFileHashcodesToDbUseCase(get()) }
 }
 
 private fun provideFileRepository(
@@ -19,3 +19,23 @@ private fun provideFileRepository(
 ): FileRepository {
     return FileRepositoryImpl(fileHashcodeDao)
 }
+
+private fun provideGetCurrentDirectoryUseCase(
+    fileRepository: FileRepository
+): GetCurrentDirectoryUseCase = GetCurrentDirectoryUseCaseImpl(fileRepository)
+
+private fun provideGetListOfFilesUseCase(
+    fileRepository: FileRepository
+): GetListOfFilesUseCase = GetListOfFilesUseCaseImpl(fileRepository)
+
+private fun provideUpCurrentDirectoryUseCase(
+    fileRepository: FileRepository
+): UpCurrentDirectoryUseCase = UpCurrentDirectoryUseCaseImpl(fileRepository)
+
+private fun provideSetCurrentDirectoryUseCase(
+    fileRepository: FileRepository
+): SetCurrentDirectoryUseCase = SetCurrentDirectoryUseCaseImpl(fileRepository)
+
+private fun provideLoadFileHashcodesToDbUseCase(
+    fileRepository: FileRepository
+): LoadFileHashcodesToDbUseCase = LoadFileHashcodesToDbUseCaseImpl(fileRepository)

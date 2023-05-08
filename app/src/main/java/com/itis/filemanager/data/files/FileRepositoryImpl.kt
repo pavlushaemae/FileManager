@@ -2,7 +2,7 @@ package com.itis.filemanager.data.files
 
 import android.os.Environment
 import com.itis.filemanager.data.files.datasource.local.dao.FileHashcodeDao
-import com.itis.filemanager.data.files.datasource.local.model.FileHashcodeModel
+import com.itis.filemanager.data.files.mapper.toFileHashcodeModel
 import com.itis.filemanager.data.files.mapper.toFileInfo
 import com.itis.filemanager.data.files.mapper.toListOfFileInfo
 import com.itis.filemanager.domain.files.FileRepository
@@ -51,7 +51,7 @@ class FileRepositoryImpl(
                 list.add(
                     0,
                     FileInfo(
-                        name = "..",
+                        name = FileInfo.BACK_NAME,
                         dateOfCreate = null,
                         listFiles = null
                     )
@@ -62,34 +62,30 @@ class FileRepositoryImpl(
     }
 
     private fun sortByName(asc: Boolean) {
-        if (asc) {
-            list.sortBy { it.name }
-        } else {
-            list.sortByDescending { it.name }
+        when (asc) {
+            true -> list.sortBy { it.name }
+            false -> list.sortByDescending { it.name }
         }
     }
 
     private fun sortByExtension(asc: Boolean) {
-        if (asc) {
-            list.sortBy { it.extension }
-        } else {
-            list.sortByDescending { it.extension }
+        when (asc) {
+            true -> list.sortBy { it.extension }
+            false -> list.sortByDescending { it.extension }
         }
     }
 
     private fun sortBySize(asc: Boolean) {
-        if (asc) {
-            list.sortBy { it.size }
-        } else {
-            list.sortByDescending { it.size }
+        when (asc) {
+            true -> list.sortBy { it.size }
+            false -> list.sortByDescending { it.size }
         }
     }
 
     private fun sortByDate(asc: Boolean) {
-        if (asc) {
-            list.sortBy { it.dateOfCreate }
-        } else {
-            list.sortByDescending { it.dateOfCreate }
+        when (asc) {
+            true -> list.sortBy { it.dateOfCreate }
+            false -> list.sortByDescending { it.dateOfCreate }
         }
     }
 
@@ -113,18 +109,17 @@ class FileRepositoryImpl(
             val files = getAllFiles(Environment.getExternalStorageDirectory())
             val changedFiles = mutableListOf<File>()
             for (file in files) {
-                val hash = calculateHash(file)
+                val hash = file.calculateHash()
                 val fileHashcodeModel = fileHashcodeDao.findByPath(file.absolutePath)
                 when {
                     fileHashcodeModel == null -> fileHashcodeDao.insert(
-                        FileHashcodeModel(
-                            file.absolutePath,
+                        file.toFileHashcodeModel(
                             hash
                         )
                     )
                     hash != fileHashcodeModel.hash -> {
                         changedFiles.add(file)
-                        fileHashcodeDao.insert(FileHashcodeModel(file.absolutePath, hash))
+                        fileHashcodeDao.insert(file.toFileHashcodeModel(hash))
                     }
                 }
             }
@@ -132,10 +127,10 @@ class FileRepositoryImpl(
         }.subscribeOn(Schedulers.io())
     }
 
-    private fun calculateHash(file: File): String = StringBuilder().apply {
-        append(file.name.length)
-        append(file.length())
-        append(file.path.length)
-        append(file.absolutePath.length)
+    private fun File.calculateHash(): String = StringBuilder().apply {
+        append(name.length)
+        append(length())
+        append(path.length)
+        append(absolutePath.length)
     }.toString()
 }
