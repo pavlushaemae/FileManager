@@ -6,7 +6,7 @@ plugins {
 }
 
 android {
-    compileSdk 32
+    compileSdk 33
 
     defaultConfig {
         applicationId "com.itis.filemanager"
@@ -67,6 +67,7 @@ dependencies {
 
     // region Mvvm
     implementation "androidx.lifecycle:lifecycle-viewmodel-ktx:2.5.1"
+    implementation "androidx.lifecycle:lifecycle-livedata-ktx:2.5.1"
     // endregion
 
     implementation 'androidx.lifecycle:lifecycle-runtime-ktx:2.5.1'
@@ -77,4 +78,10 @@ dependencies {
     def koin_version = '3.3.0'
     implementation "io.insert-koin:koin-android:${koin_version}"
 
+}
+
+detekt {
+    source = files(projectDir)
+    config = files("${project.rootDir}/config/detekt/detekt.yml")
+    parallel = true
 }

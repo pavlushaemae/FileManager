@@ -1,4 +1,9 @@
 <resources>
     <string name="app_name">FileManager</string>
     <string name="list_is_empty">List is empty</string>
+    <string name="share">Share</string>
+    <string name="name">name</string>
+    <string name="kb">kb</string>
+    <string name="sort_by">Sort by:</string>
+    <string name="show_changed_files">Show Changed Files</string>
 </resources>

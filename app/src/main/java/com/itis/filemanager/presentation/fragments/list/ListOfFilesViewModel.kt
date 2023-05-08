@@ -1,23 +1,20 @@
 package com.itis.filemanager.presentation.fragments.list
 
+import android.util.Log
+import androidx.lifecycle.LiveData
+import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewModelScope
 import com.itis.filemanager.domain.files.*
 import com.itis.filemanager.domain.files.model.FileInfo
-import com.itis.filemanager.presentation.recycler.files.FileAdapter
 import com.itis.filemanager.presentation.recycler.files.model.FileItem
 import com.itis.filemanager.presentation.recycler.files.model.toFileInfo
 import com.itis.filemanager.presentation.recycler.files.model.toFileItemList
+import com.itis.filemanager.presentation.utils.Sort
 import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers
 import io.reactivex.rxjava3.disposables.CompositeDisposable
 import io.reactivex.rxjava3.kotlin.plusAssign
 import io.reactivex.rxjava3.kotlin.subscribeBy
 import io.reactivex.rxjava3.schedulers.Schedulers
-import kotlinx.coroutines.flow.MutableSharedFlow
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharedFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.launch
 import java.io.File
 
 class ListOfFilesViewModel(
@@ -32,63 +29,56 @@ class ListOfFilesViewModel(
 
     private var changedFiles: List<FileItem> = listOf()
 
-    private val _adapter: MutableStateFlow<FileAdapter?> = MutableStateFlow(null)
-    val adapter: StateFlow<FileAdapter?>
-        get() = _adapter
-
-    private val _openFile: MutableSharedFlow<File?> = MutableSharedFlow()
-    val openFile: SharedFlow<File?>
+    private val _openFile: MutableLiveData<File> = MutableLiveData()
+    val openFile: LiveData<File>
         get() = _openFile
 
-    private val _shareFile: MutableSharedFlow<File?> = MutableSharedFlow()
-    val shareFile: SharedFlow<File?>
+    private val _shareFile: MutableLiveData<File> = MutableLiveData()
+    val shareFile: LiveData<File>
         get() = _shareFile
 
-    private val _currentPath: MutableSharedFlow<String> = MutableSharedFlow()
-    val currentPath: SharedFlow<String>
+    private val _currentPath: MutableLiveData<String> = MutableLiveData()
+    val currentPath: LiveData<String>
         get() = _currentPath
 
-    private val _listOfFiles: MutableStateFlow<List<FileItem>> = MutableStateFlow(listOf())
-    val listOfFiles: StateFlow<List<FileItem>>
+    private val _listOfFiles: MutableLiveData<List<FileItem>> = MutableLiveData(emptyList())
+    val listOfFiles: LiveData<List<FileItem>>
         get() = _listOfFiles
 
-    private val sortBy: MutableStateFlow<String> = MutableStateFlow("Name")
+    private val sortBy: MutableLiveData<Sort> = MutableLiveData(Sort.SORT_NAME)
 
-    private val sortByAsc: MutableStateFlow<Boolean> = MutableStateFlow(true)
+    private val sortByAsc: MutableLiveData<Boolean> = MutableLiveData(true)
 
-    private val _loading: MutableStateFlow<Boolean> = MutableStateFlow(false)
-    val loading: StateFlow<Boolean>
+    private val _loading: MutableLiveData<Boolean> = MutableLiveData(false)
+    val loading: LiveData<Boolean>
         get() = _loading
 
     private fun openFile(aDirectory: FileInfo) {
-        viewModelScope.launch {
-            val file = File(aDirectory.absolutePath)
-            _openFile.emit(file)
+        val file = File(aDirectory.absolutePath)
+        _openFile.value = file
+    }
+
+    fun onItemClick(fileItem: FileItem) {
+        fileItem.apply {
+            if (name == "..") {
+                upOneLevel()
+            } else {
+                browseTo(toFileInfo())
+            }
         }
     }
 
-    fun initAdapter() {
-        _adapter.value = FileAdapter(
-            onItemClick = {
-                if (it.name == "..") {
-                    upOneLevel()
-                } else {
-                    browseTo(it.toFileInfo())
-                }
-            }, onShareClick = {
-                viewModelScope.launch {
-                    _shareFile.emit(File(it.absolutePath))
-                }
-            })
+    fun onShareClick(fileItem: FileItem) {
+        _shareFile.value = File(fileItem.absolutePath)
     }
 
-    fun sortBy(sort: String) {
+    fun sortBy(sort: Sort) {
         sortBy.value = sort
         fill()
     }
 
-    fun sortByAsc(asc: String) {
-        sortByAsc.value = asc == "Ascending"
+    fun sortByAsc(asc: Boolean) {
+        sortByAsc.value = asc
         fill()
     }
 
@@ -96,9 +86,11 @@ class ListOfFilesViewModel(
     fun loadFilesToDb() {
         fileDisposable += loadFileHashcodesToDbUseCase()
             .observeOn(AndroidSchedulers.mainThread())
-            .subscribeBy {
+            .subscribeBy(onSuccess = {
                 changedFiles = it.toFileItemList()
-            }
+            }, onError = {
+                Log.e("error", it.toString())
+            })
     }
 
     fun getChangedFiles() {
@@ -106,9 +98,7 @@ class ListOfFilesViewModel(
             browseToRootDirectory()
         } else {
             _listOfFiles.value = changedFiles
-            viewModelScope.launch {
-                _currentPath.emit("Changed files")
-            }
+            _currentPath.value = "Changed files"
         }
     }
 
@@ -120,24 +110,27 @@ class ListOfFilesViewModel(
         setCurrentDirectoryUseCase(directory)
         if (directory.isDirectory) {
             fill()
-            viewModelScope.launch {
-                _currentPath.emit(directory.absolutePath)
-            }
+            _currentPath.value = directory.absolutePath
         } else {
             openFile(directory)
         }
     }
 
     private fun fill() {
-        fileDisposable +=
-            getListOfFilesUseCase(sortBy.value, sortByAsc.value)
-                .subscribeOn(Schedulers.io())
-                .observeOn(AndroidSchedulers.mainThread())
-                .doOnSubscribe { _loading.value = true }
-                .doAfterTerminate { _loading.value = false }
-                .subscribeBy {
-                    _listOfFiles.value = it.toFileItemList()
-                }
+        sortBy.value?.let { sortBy ->
+            sortByAsc.value?.let { sortByAsc ->
+                fileDisposable +=
+                    getListOfFilesUseCase(sortBy, sortByAsc)
+                        .subscribeOn(Schedulers.io())
+                        .observeOn(AndroidSchedulers.mainThread())
+                        .doOnSubscribe { _loading.value = true }
+                        .doAfterTerminate { _loading.value = false }
+                        .subscribeBy {
+                            _listOfFiles.value = it.toFileItemList()
+                        }
+            }
+        }
+
     }
 
     private fun upOneLevel() {

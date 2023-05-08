@@ -18,6 +18,7 @@ fun File.toFileInfo(): FileInfo = FileInfo(
 fun Array<out File>.toListOfFileInfo() = map {
     it.toFileInfo()
 }
+
 fun List<File>.toListOfFileInfo() = map {
     it.toFileInfo()
 }

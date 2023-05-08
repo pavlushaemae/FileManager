@@ -7,6 +7,7 @@ import com.itis.filemanager.data.files.mapper.toFileInfo
 import com.itis.filemanager.data.files.mapper.toListOfFileInfo
 import com.itis.filemanager.domain.files.FileRepository
 import com.itis.filemanager.domain.files.model.FileInfo
+import com.itis.filemanager.presentation.utils.Sort
 import io.reactivex.rxjava3.core.Single
 import io.reactivex.rxjava3.schedulers.Schedulers
 import java.io.File
@@ -29,7 +30,7 @@ class FileRepositoryImpl(
         return files
     }
 
-    override fun getListOfFiles(sortBy: String, asc: Boolean): Single<List<FileInfo>> {
+    override fun getListOfFiles(sortBy: Sort, asc: Boolean): Single<List<FileInfo>> {
         return Single.fromCallable {
             list.clear()
 
@@ -38,32 +39,57 @@ class FileRepositoryImpl(
             }
 
             when (sortBy) {
-                "Name" ->
-                    if (asc) list.sortBy { it.name }
-                    else list.sortByDescending { it.name }
-                "Extension" ->
-                    if (asc) list.sortBy { it.extension }
-                    else list.sortByDescending { it.extension }
-                "Size" ->
-                    if (asc) list.sortBy { it.size }
-                    else list.sortByDescending { it.size }
-                "Date" ->
-                    if (asc) list.sortBy { it.dateOfCreate }
-                    else list.sortByDescending { it.dateOfCreate }
-            }
-            currentDirectory.parent?.let {
-                if (it != Environment.getExternalStorageDirectory().parent)
-                    list.add(
-                        0,
-                        FileInfo(
-                            name = "..",
-                            dateOfCreate = null,
-                            listFiles = null
-                        )
-                    )
+                Sort.SORT_NAME -> sortByName(asc)
+                Sort.SORT_EXTENSION -> sortByExtension(asc)
+                Sort.SORT_SIZE -> sortBySize(asc)
+                Sort.SORT_DATE -> sortByDate(asc)
             }
 
+            currentDirectory.parent?.takeIf {
+                it != Environment.getExternalStorageDirectory().parent
+            }?.let {
+                list.add(
+                    0,
+                    FileInfo(
+                        name = "..",
+                        dateOfCreate = null,
+                        listFiles = null
+                    )
+                )
+            }
             return@fromCallable list
+        }
+    }
+
+    private fun sortByName(asc: Boolean) {
+        if (asc) {
+            list.sortBy { it.name }
+        } else {
+            list.sortByDescending { it.name }
+        }
+    }
+
+    private fun sortByExtension(asc: Boolean) {
+        if (asc) {
+            list.sortBy { it.extension }
+        } else {
+            list.sortByDescending { it.extension }
+        }
+    }
+
+    private fun sortBySize(asc: Boolean) {
+        if (asc) {
+            list.sortBy { it.size }
+        } else {
+            list.sortByDescending { it.size }
+        }
+    }
+
+    private fun sortByDate(asc: Boolean) {
+        if (asc) {
+            list.sortBy { it.dateOfCreate }
+        } else {
+            list.sortByDescending { it.dateOfCreate }
         }
     }
 
@@ -89,23 +115,27 @@ class FileRepositoryImpl(
             for (file in files) {
                 val hash = calculateHash(file)
                 val fileHashcodeModel = fileHashcodeDao.findByPath(file.absolutePath)
-                if (fileHashcodeModel == null) {
-                    fileHashcodeDao.insert(FileHashcodeModel(file.absolutePath, hash))
-                } else if (hash != (fileHashcodeModel.hash)) {
-                    changedFiles.add(file)
-                    fileHashcodeDao.insert(FileHashcodeModel(file.absolutePath, hash))
+                when {
+                    fileHashcodeModel == null -> fileHashcodeDao.insert(
+                        FileHashcodeModel(
+                            file.absolutePath,
+                            hash
+                        )
+                    )
+                    hash != fileHashcodeModel.hash -> {
+                        changedFiles.add(file)
+                        fileHashcodeDao.insert(FileHashcodeModel(file.absolutePath, hash))
+                    }
                 }
             }
             return@fromCallable changedFiles.toListOfFileInfo()
         }.subscribeOn(Schedulers.io())
     }
 
-    private fun calculateHash(file: File): String {
-        val s = StringBuilder()
-        s.append(file.name.length)
-        s.append(file.length())
-        s.append(file.path.length)
-        s.append(file.absolutePath.length)
-        return s.toString()
-    }
+    private fun calculateHash(file: File): String = StringBuilder().apply {
+        append(file.name.length)
+        append(file.length())
+        append(file.path.length)
+        append(file.absolutePath.length)
+    }.toString()
 }

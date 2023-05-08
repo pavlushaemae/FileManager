@@ -9,23 +9,20 @@ import android.webkit.MimeTypeMap
 import android.widget.AdapterView
 import android.widget.ArrayAdapter
 import androidx.core.content.FileProvider
+import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
-import androidx.lifecycle.flowWithLifecycle
-import androidx.lifecycle.lifecycleScope
 import com.itis.filemanager.BuildConfig
 import com.itis.filemanager.R
 import com.itis.filemanager.databinding.FragmentListOfFilesBinding
 import com.itis.filemanager.presentation.recycler.files.FileAdapter
 import com.itis.filemanager.presentation.recycler.files.utils.SpaceItemDecorator
-import kotlinx.coroutines.flow.launchIn
-import kotlinx.coroutines.flow.onEach
-import kotlinx.coroutines.launch
+import com.itis.filemanager.presentation.utils.Sort
 import org.koin.androidx.viewmodel.ext.android.viewModel
 
+class ListOfFilesFragment : Fragment(R.layout.fragment_list_of_files) {
 
-class ListOfFilesFragment : Fragment() {
-
-    private lateinit var binding: FragmentListOfFilesBinding
+    private var _binding: FragmentListOfFilesBinding? = null
+    private val binding get() = _binding!!
 
     private val viewModel: ListOfFilesViewModel by viewModel()
 
@@ -36,16 +33,16 @@ class ListOfFilesFragment : Fragment() {
         container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View {
-        binding = FragmentListOfFilesBinding.inflate(inflater, container, false)
+        _binding = FragmentListOfFilesBinding.inflate(inflater, container, false)
         return binding.root
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        initAdapter()
         observeViewModel()
         activity?.requestPermissions(arrayOf(android.Manifest.permission.READ_EXTERNAL_STORAGE), 0)
         viewModel.loadFilesToDb()
-        viewModel.initAdapter()
         viewModel.browseToRootDirectory()
         binding.rvPosts.addItemDecoration(
             SpaceItemDecorator(requireContext(), SPACING_DP)
@@ -55,6 +52,17 @@ class ListOfFilesFragment : Fragment() {
         binding.btnShowChangedFiles.setOnClickListener {
             viewModel.getChangedFiles()
         }
+    }
+
+    private fun initAdapter() {
+        fileAdapter = FileAdapter(
+            onItemClick = {
+                viewModel.onItemClick(it)
+            }, onShareClick = {
+                viewModel.onShareClick(it)
+            })
+        binding.rvPosts.addItemDecoration(SpaceItemDecorator(requireContext(), SPACING_DP))
+        binding.rvPosts.adapter = fileAdapter
     }
 
     private fun initSpinnerSort() {
@@ -73,13 +81,11 @@ class ListOfFilesFragment : Fragment() {
                 position: Int,
                 id: Long
             ) {
-                parent?.getItemAtPosition(position).also {
-                    it?.let {
-                        viewModel.sortBy(it.toString())
-                        binding.rvPosts.scrollToPosition(0)
-                    }
+                parent?.getItemAtPosition(position)?.let {
+                    viewModel.sortBy(Sort.from(it.toString()))
                 }
             }
+
             override fun onNothingSelected(parent: AdapterView<*>?) = Unit
         }
     }
@@ -102,13 +108,8 @@ class ListOfFilesFragment : Fragment() {
                     position: Int,
                     id: Long
                 ) {
-                    parent?.getItemAtPosition(position).also {
-                        parent?.getItemAtPosition(position).also {
-                            it?.let {
-                                viewModel.sortByAsc(it.toString())
-                                binding.rvPosts.scrollToPosition(0)
-                            }
-                        }
+                    parent?.getItemAtPosition(position)?.let {
+                        viewModel.sortByAsc(it.toString() == ASCENDING)
                     }
                 }
 
@@ -119,82 +120,69 @@ class ListOfFilesFragment : Fragment() {
 
     private fun observeViewModel() {
         with(viewModel) {
-            adapter.flowWithLifecycle(lifecycle)
-                .onEach {
-                    it?.let {
-                        fileAdapter = it
-                        binding.rvPosts.adapter = fileAdapter
+            openFile.observe(viewLifecycleOwner) {
+                val mType =
+                    MimeTypeMap.getSingleton().getMimeTypeFromExtension(it.extension)
+                val uri = FileProvider.getUriForFile(
+                    requireContext(),
+                    BuildConfig.APPLICATION_ID + ".provider",
+                    it
+                )
+                val intent = Intent(Intent.ACTION_VIEW)
+                intent.setDataAndType(uri, mType)
+                intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                startActivity(intent)
+            }
+            currentPath.observe(viewLifecycleOwner) {
+                binding.currentPath.text = it
+            }
+            listOfFiles.observe(viewLifecycleOwner) {
+                binding.tvEmpty.isVisible = it.isEmpty()
+                fileAdapter?.submitList(it)
+                binding.rvPosts.scrollToPosition(0)
+            }
+            loading.observe(viewLifecycleOwner) {
+                with(binding) {
+                    if (it) {
+                        pbLoading.visibility = View.VISIBLE
+                        rvPosts.visibility = View.GONE
+                    } else {
+                        pbLoading.visibility = View.GONE
+                        rvPosts.visibility = View.VISIBLE
                     }
-                }.launchIn(lifecycleScope)
-            openFile.flowWithLifecycle(lifecycle)
-                .onEach {
-                    it?.let {
-                        val mType =
-                            MimeTypeMap.getSingleton().getMimeTypeFromExtension(it.extension)
-                        val u = FileProvider.getUriForFile(
-                            requireContext(),
-                            BuildConfig.APPLICATION_ID + ".provider",
-                            it
-                        )
-                        val i = Intent(Intent.ACTION_VIEW)
-                        i.setDataAndType(u, mType)
-                        i.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                        startActivity(i)
-                    }
-                }.launchIn(lifecycleScope)
-            lifecycleScope.launch {
-                currentPath.collect {
-                    binding.currentPath.text = it
                 }
             }
-            listOfFiles.flowWithLifecycle(lifecycle)
-                .onEach {
-                    if (it.isEmpty()) {
-                        binding.tvEmpty.visibility = View.VISIBLE
-                    } else {
-                        binding.tvEmpty.visibility = View.GONE
-                    }
-                    fileAdapter?.submitList(it)
-                }.launchIn(lifecycleScope)
-            loading.flowWithLifecycle(lifecycle)
-                .onEach {
-                    with(binding) {
-                        if (it) {
-                            pbLoading.visibility = View.VISIBLE
-                            rvPosts.visibility =  View.GONE
-                        } else {
-                            pbLoading.visibility = View.GONE
-                            rvPosts.visibility = View.VISIBLE
-                        }
-                    }
-                }.launchIn(lifecycleScope)
-            shareFile.flowWithLifecycle(lifecycle)
-                .onEach {
-                    it?.let {
-                        val intent = Intent()
-                        intent.action = Intent.ACTION_SEND
-                        val mType =
-                            MimeTypeMap.getSingleton().getMimeTypeFromExtension(it.extension)
-                        val u = FileProvider.getUriForFile(
-                            requireContext(),
-                            BuildConfig.APPLICATION_ID + ".provider",
-                            it
-                        )
-                        intent.type = mType
-                        intent.putExtra(Intent.EXTRA_STREAM, u)
-                        val chooserIntent = Intent.createChooser(
-                            intent,
-                            "Share"
-                        )
-                        if (chooserIntent.resolveActivity(requireActivity().packageManager) != null) {
-                            startActivity(chooserIntent)
-                        }
-                    }
-                }.launchIn(lifecycleScope)
+            shareFile.observe(viewLifecycleOwner) {
+                val intent = Intent()
+                intent.action = Intent.ACTION_SEND
+                val mType =
+                    MimeTypeMap.getSingleton().getMimeTypeFromExtension(it.extension)
+                val u = FileProvider.getUriForFile(
+                    requireContext(),
+                    BuildConfig.APPLICATION_ID + ".provider",
+                    it
+                )
+                intent.type = mType
+                intent.putExtra(Intent.EXTRA_STREAM, u)
+                val chooserIntent = Intent.createChooser(
+                    intent,
+                    getString(R.string.share)
+                )
+                chooserIntent.resolveActivity(requireActivity().packageManager)?.let {
+                    startActivity(chooserIntent)
+                }
+
+            }
         }
     }
 
+    override fun onDestroyView() {
+        super.onDestroyView()
+        _binding = null
+    }
+
     companion object {
-        private const val SPACING_DP = 16f
+        private const val ASCENDING = "Ascending"
+        private const val SPACING_DP = 8f
     }
 }

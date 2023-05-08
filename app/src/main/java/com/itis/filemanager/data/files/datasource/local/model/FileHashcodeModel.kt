@@ -4,7 +4,7 @@ import androidx.room.Entity
 import androidx.room.PrimaryKey
 
 @Entity(tableName = "file_hashcode")
-data class FileHashcodeModel (
+data class FileHashcodeModel(
     @PrimaryKey
     val path: String,
     val hash: String
