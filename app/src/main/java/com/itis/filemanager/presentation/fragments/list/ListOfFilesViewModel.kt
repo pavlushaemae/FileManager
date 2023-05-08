@@ -37,7 +37,7 @@ class ListOfFilesViewModel(
     val shareFile: LiveData<File>
         get() = _shareFile
 
-    private val _currentPath: MutableLiveData<String> = MutableLiveData()
+    private val _currentPath: MutableLiveData<String> = MutableLiveData("")
     val currentPath: LiveData<String>
         get() = _currentPath
 
@@ -52,6 +52,10 @@ class ListOfFilesViewModel(
     private val _loading: MutableLiveData<Boolean> = MutableLiveData(false)
     val loading: LiveData<Boolean>
         get() = _loading
+
+    private val _perms = MutableLiveData(false)
+    val perms: LiveData<Boolean>
+        get() = _perms
 
     private fun openFile(aDirectory: FileInfo) {
         val file = File(aDirectory.absolutePath)
@@ -84,13 +88,15 @@ class ListOfFilesViewModel(
 
 
     fun loadFilesToDb() {
-        fileDisposable += loadFileHashcodesToDbUseCase()
-            .observeOn(AndroidSchedulers.mainThread())
-            .subscribeBy(onSuccess = {
-                changedFiles = it.toFileItemList()
-            }, onError = {
-                Log.e("error", it.toString())
-            })
+        if (perms.value == true) {
+            fileDisposable += loadFileHashcodesToDbUseCase()
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribeBy(onSuccess = {
+                    changedFiles = it.toFileItemList()
+                }, onError = {
+                    Log.e("error", it.toString())
+                })
+        }
     }
 
     fun getChangedFiles() {
@@ -103,7 +109,9 @@ class ListOfFilesViewModel(
     }
 
     fun browseToRootDirectory() {
-        browseTo(getCurrentDirectoryUseCase())
+        if (perms.value == true) {
+            browseTo(getCurrentDirectoryUseCase())
+        }
     }
 
     private fun browseTo(directory: FileInfo) {
@@ -117,24 +125,34 @@ class ListOfFilesViewModel(
     }
 
     private fun fill() {
-        sortBy.value?.let { sortBy ->
-            sortByAsc.value?.let { sortByAsc ->
-                fileDisposable +=
-                    getListOfFilesUseCase(sortBy, sortByAsc)
-                        .subscribeOn(Schedulers.io())
-                        .observeOn(AndroidSchedulers.mainThread())
-                        .doOnSubscribe { _loading.value = true }
-                        .doAfterTerminate { _loading.value = false }
-                        .subscribeBy {
-                            _listOfFiles.value = it.toFileItemList()
-                        }
+        if (perms.value == true) {
+            sortBy.value?.let { sortBy ->
+                sortByAsc.value?.let { sortByAsc ->
+                    fileDisposable +=
+                        getListOfFilesUseCase(sortBy, sortByAsc)
+                            .subscribeOn(Schedulers.io())
+                            .observeOn(AndroidSchedulers.mainThread())
+                            .doOnSubscribe { _loading.value = true }
+                            .doAfterTerminate { _loading.value = false }
+                            .subscribeBy(
+                                onSuccess = {
+                                    _listOfFiles.value = it.toFileItemList()
+                                }, onError = {
+                                    Log.e("error", it.toString())
+                                }
+                            )
+                }
             }
-        }
 
+        }
     }
 
     private fun upOneLevel() {
         browseTo(upCurrentDirectoryUseCase())
+    }
+
+    fun onReadExternalStorageIsGranted(isGranted: Boolean) {
+        _perms.value = isGranted
     }
 
     override fun onCleared() {

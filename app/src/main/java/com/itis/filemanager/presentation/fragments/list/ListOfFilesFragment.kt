@@ -1,16 +1,23 @@
 package com.itis.filemanager.presentation.fragments.list
 
+import android.Manifest
 import android.content.Intent
+import android.content.pm.PackageManager
+import android.net.Uri
 import android.os.Bundle
+import android.provider.Settings
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.webkit.MimeTypeMap
 import android.widget.AdapterView
 import android.widget.ArrayAdapter
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
+import com.google.android.material.snackbar.Snackbar
 import com.itis.filemanager.BuildConfig
 import com.itis.filemanager.R
 import com.itis.filemanager.databinding.FragmentListOfFilesBinding
@@ -28,6 +35,25 @@ class ListOfFilesFragment : Fragment(R.layout.fragment_list_of_files) {
 
     private var fileAdapter: FileAdapter? = null
 
+    private val settings =
+        registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {}
+
+    private val permission =
+        registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+            granted?.run {
+                when {
+                    granted -> viewModel.onReadExternalStorageIsGranted(true)
+                    !shouldShowRequestPermissionRationale(Manifest.permission.READ_EXTERNAL_STORAGE) -> {
+                        showPermsOnSetting()
+                    }
+
+                    else -> {
+                        showGivePermissions()
+                    }
+                }
+            }
+        }
+
     override fun onCreateView(
         inflater: LayoutInflater,
         container: ViewGroup?,
@@ -41,7 +67,7 @@ class ListOfFilesFragment : Fragment(R.layout.fragment_list_of_files) {
         super.onViewCreated(view, savedInstanceState)
         initAdapter()
         observeViewModel()
-        activity?.requestPermissions(arrayOf(android.Manifest.permission.READ_EXTERNAL_STORAGE), 0)
+        checkPermissions()
         viewModel.loadFilesToDb()
         viewModel.browseToRootDirectory()
         binding.rvPosts.addItemDecoration(
@@ -173,6 +199,67 @@ class ListOfFilesFragment : Fragment(R.layout.fragment_list_of_files) {
                 }
 
             }
+        }
+    }
+
+    private fun checkPermissions() {
+        when {
+            ContextCompat.checkSelfPermission(
+                this.requireContext(),
+                Manifest.permission.ACCESS_FINE_LOCATION
+            ) == PackageManager.PERMISSION_GRANTED -> {
+                viewModel.onReadExternalStorageIsGranted(true)
+            }
+            shouldShowRequestPermissionRationale(Manifest.permission.ACCESS_FINE_LOCATION) -> {
+                requestPerms()
+            }
+            else -> {
+                permission.launch(Manifest.permission.READ_EXTERNAL_STORAGE)
+            }
+        }
+    }
+
+    private fun requestPerms() {
+        val permissions = arrayOf(
+            Manifest.permission.ACCESS_FINE_LOCATION,
+            Manifest.permission.ACCESS_COARSE_LOCATION
+        )
+        activity?.requestPermissions(permissions, 0)
+    }
+
+    private fun showPermsOnSetting() {
+        binding.run {
+            Snackbar.make(
+                root.rootView,
+                getString(R.string.permissions_are_needed),
+                Snackbar.LENGTH_LONG
+            )
+                .setAction(
+                    getString(R.string.go_to_settings)
+                ) {
+                    openApplicationSettings()
+                }
+                .show()
+        }
+    }
+
+    private fun openApplicationSettings() {
+        val appSettingsIntent = Intent(
+            Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+            Uri.parse("package:" + requireContext().packageName)
+        )
+        settings.launch(appSettingsIntent)
+    }
+
+    private fun showGivePermissions() {
+        binding.run {
+            Snackbar.make(
+                binding.root.rootView,
+                getString(R.string.give_permissions),
+                Snackbar.LENGTH_LONG
+            )
+                .setAction(getString(R.string.allow)) { requestPerms() }
+                .show()
         }
     }
 
