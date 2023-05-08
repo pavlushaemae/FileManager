@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+        <string-array name="sort_array">
+            <item>Name</item>
+            <item>Extension</item>
+            <item>Size</item>
+            <item>Date</item>
+        </string-array>
+
+    <string-array name="sort_asc">
+        <item>Ascending</item>
+        <item>Descending</item>
+    </string-array>
+</resources>
