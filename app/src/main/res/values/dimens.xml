@@ -5,4 +5,7 @@
     <dimen name="main_4">16dp</dimen>
     <dimen name="main1">4dp</dimen>
     <dimen name="main10">40dp</dimen>
+    <dimen name="sp_4">16sp</dimen>
+    <dimen name="main_1">4dp</dimen>
+    <dimen name="main_0">1dp</dimen>
 </resources>

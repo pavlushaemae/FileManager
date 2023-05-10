@@ -2,10 +2,14 @@ package com.itis.filemanager.domain.files
 
 import com.itis.filemanager.domain.files.model.FileInfo
 
-class UpCurrentDirectoryUseCase(
+class UpCurrentDirectoryUseCaseImpl(
     private val fileRepository: FileRepository
-) {
-    operator fun invoke(): FileInfo{
+) : UpCurrentDirectoryUseCase {
+    override operator fun invoke(): FileInfo {
         return fileRepository.upCurrentDirectory()
     }
+}
+
+interface UpCurrentDirectoryUseCase {
+    operator fun invoke(): FileInfo
 }

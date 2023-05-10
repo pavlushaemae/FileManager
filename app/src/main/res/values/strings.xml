@@ -1,4 +1,14 @@
 <resources>
     <string name="app_name">FileManager</string>
     <string name="list_is_empty">List is empty</string>
+    <string name="share">Share</string>
+    <string name="name">name</string>
+    <string name="kb">kb</string>
+    <string name="sort_by">Sort by:</string>
+    <string name="show_changed_files">Show Changed Files</string>
+    <string name="go_to_settings">Go to settings</string>
+    <string name="permissions_are_needed">Permissions are needed</string>
+    <string name="location_not_found">Location not found</string>
+    <string name="give_permissions">Give permissions</string>
+    <string name="allow">Allow</string>
 </resources>

@@ -1,7 +1,6 @@
 package com.itis.filemanager
 
 import android.app.Application
-import com.itis.filemanager.di.appModule
 import com.itis.filemanager.di.databaseModule
 import com.itis.filemanager.di.featureModule
 import com.itis.filemanager.di.filesModule
@@ -16,7 +15,6 @@ class App : Application() {
         startKoin {
             androidContext(this@App)
             modules(
-                appModule,
                 featureModule,
                 filesModule,
                 databaseModule
