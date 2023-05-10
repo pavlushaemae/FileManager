@@ -8,4 +8,8 @@ data class FileItem(
     val isDirectory: Boolean,
     val absolutePath: String,
     val drawable: Int
-)
+) {
+    companion object {
+        const val BACK_NAME = ".."
+    }
+}

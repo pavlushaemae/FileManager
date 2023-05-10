@@ -64,7 +64,7 @@ class ListOfFilesViewModel(
 
     fun onItemClick(fileItem: FileItem) {
         fileItem.apply {
-            if (name == "..") {
+            if (name == FileItem.BACK_NAME) {
                 upOneLevel()
             } else {
                 browseTo(toFileInfo())
